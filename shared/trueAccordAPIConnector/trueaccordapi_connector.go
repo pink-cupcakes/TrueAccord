@@ -33,11 +33,13 @@ const (
 	getPayments        = "payments"
 )
 
+// Debt ... is the debt response model returned from TrueAccord API
 type Debt struct {
 	ID int64 `json:"id"`
 	Amount float64 `json:"amount"`
 }
 
+// PaymentPlan ... is the payment plan response model returned from TrueAccord API
 type PaymentPlan struct {
 	ID int64 `json:"id"`
 	DebtID int64 `json:"debt_id"`
@@ -47,6 +49,7 @@ type PaymentPlan struct {
 	StartDate string `json:"start_date"`
 }
 
+// Payment ... is the customer payment response model returned from TrueAccord API
 type Payment struct {
 	Amount float64 `json:"amount"`
 	Date string `json:"date"`
@@ -58,6 +61,7 @@ func NewTrueAccordAPIConnector() TrueAccordAPIConnector {
 	return &trueAccordAPIConnector{}
 }
 
+// GetDebts ... returns all the debts from TrueAccord API
 func (j *trueAccordAPIConnector) GetDebts() (debts []*Debt, err *httphelpers.APIError) {
 	resp, requestErr := j.makeRequest(getDebts, "GET", nil, nil)
 	if err != nil {
@@ -94,6 +98,7 @@ func (j *trueAccordAPIConnector) GetDebts() (debts []*Debt, err *httphelpers.API
 	return
 }
 
+// GetPaymentPlan ... returns a payment plan (of any) for a given debt from TrueAccord API
 func (j *trueAccordAPIConnector) GetPaymentPlan(debtID int64) (paymentPlans []*PaymentPlan, err *httphelpers.APIError) {
 	params := url.Values{"debt_id": []string{strconv.Itoa(int(debtID))}}
 	resp, requestErr := j.makeRequest(getPaymentPlans, "GET", nil, params)
@@ -131,6 +136,7 @@ func (j *trueAccordAPIConnector) GetPaymentPlan(debtID int64) (paymentPlans []*P
 	return
 }
 
+// GetPayments ... returns the payment activities for a given payment plan from TrueAccord API
 func (j *trueAccordAPIConnector) GetPayments(paymentPlanID int64) (payments []*Payment, err *httphelpers.APIError) {
 	params := url.Values{"payment_plan_id": []string{strconv.Itoa(int(paymentPlanID))}}
 	resp, requestErr := j.makeRequest(getPayments, "GET", nil, params)

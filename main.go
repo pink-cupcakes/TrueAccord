@@ -11,31 +11,23 @@ import (
 
 var trueAccordAPIConnector trueaccordapiconnector.TrueAccordAPIConnector
 
-func Initialize() {
+func initialize() {
 	log.SetFormatter(&log.TextFormatter{})
 	trueAccordAPIConnector = trueaccordapiconnector.NewTrueAccordAPIConnector()
 }
 
 func main() {
-	Initialize()
+	initialize()
 
 	debts, err := trueAccordAPIConnector.GetDebts()
 	if err != nil {
-		log.WithFields(log.Fields{
-			"Message": err.ErrorMessage,
-			"ClientError": err.ClientErrorMessage,
-			"InternalErrorMessage": err.InternalErrorMessage,
-		}).Error()
+		err.LogError()
 	}
 
 	for _, debt := range debts {
 		paymentPlans, err := trueAccordAPIConnector.GetPaymentPlan(debt.ID)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"Message": err.ErrorMessage,
-				"ClientError": err.ClientErrorMessage,
-				"InternalErrorMessage": err.InternalErrorMessage,
-			}).Error()
+			err.LogError()
 
 			// Depending on the severity, either recover or break
 		}
@@ -52,11 +44,7 @@ func main() {
 		paymentPlan := paymentPlans[0]
 		payments, err := trueAccordAPIConnector.GetPayments(paymentPlan.ID)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"Message": err.ErrorMessage,
-				"ClientError": err.ClientErrorMessage,
-				"InternalErrorMessage": err.InternalErrorMessage,
-			}).Error()
+			err.LogError()
 		}
 
 		log.Println("Payment plan is:")
