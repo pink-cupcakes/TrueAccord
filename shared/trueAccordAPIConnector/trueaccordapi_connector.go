@@ -20,6 +20,7 @@ import (
 type TrueAccordAPIConnector interface {
 	GetDebts() (debts []*Debt, err *httphelpers.APIError)
 	GetPaymentPlan(debtID int64) (paymentPlans []*PaymentPlan, err *httphelpers.APIError)
+	GetPayments(paymentPlanID int64) (payments []*Payment, err *httphelpers.APIError)
 }
 
 type trueAccordAPIConnector struct{}
@@ -29,7 +30,7 @@ var trueAccordAPIURL = os.Getenv("TRUEACCORD_API_URL")
 const (
 	getDebts        = "debts"
 	getPaymentPlans = "payment_plans"
-	payments        = "payments"
+	getPayments        = "payments"
 )
 
 type Debt struct {
@@ -44,7 +45,12 @@ type PaymentPlan struct {
 	Frequency string `json:"installment_frequency"`
 	Amount float64 `json:"installment_amount"`
 	StartDate string `json:"start_date"`
+}
 
+type Payment struct {
+	Amount float64 `json:"amount"`
+	Date string `json:"date"`
+	PaymentPlanID int64 `json:"payment_plan_id"`
 }
 
 // NewTrueAccordAPIConnector ... returns an interface of TrueAccordAPIConnector
@@ -99,15 +105,15 @@ func (j *trueAccordAPIConnector) GetPaymentPlan(debtID int64) (paymentPlans []*P
 
 	b, requestErr := ioutil.ReadAll(resp.Body)
 	if requestErr != nil {
-		clientErr := "Failed to GET paymentPlan"
+		clientErr := "Failed to GET payment plans"
 
-		err = httphelpers.NewAPIError(requestErr, clientErr).SetInternalErrorMessage("Failed to read response body from GET paymentPlan")
+		err = httphelpers.NewAPIError(requestErr, clientErr).SetInternalErrorMessage("Failed to read response body from GET payment plans")
 		return 
 	}
 
 	if resp.StatusCode != 200 {
-		requestErr = errors.New("Failed to GET paymentPlan, non-200 response: " + string(b))
-		clientErr := "Failed to GET paymentPlan"
+		requestErr = errors.New("Failed to GET payment plans, non-200 response: " + string(b))
+		clientErr := "Failed to GET payment plans"
 
 		err = httphelpers.NewAPIError(requestErr, clientErr)
 		return paymentPlans, err
@@ -115,10 +121,46 @@ func (j *trueAccordAPIConnector) GetPaymentPlan(debtID int64) (paymentPlans []*P
 
 	requestErr = json.Unmarshal(b, &paymentPlans)
 	if requestErr != nil {
-		clientErr := "Failed to GET paymentPlan"
+		clientErr := "Failed to GET payment plans"
 
 		err = httphelpers.NewAPIError(requestErr, clientErr)
-		err.SetInternalErrorMessage("Failed to unmarshal GET paymentPlan result")
+		err.SetInternalErrorMessage("Failed to unmarshal GET payment plans result")
+		return nil, err
+	}
+
+	return
+}
+
+func (j *trueAccordAPIConnector) GetPayments(paymentPlanID int64) (payments []*Payment, err *httphelpers.APIError) {
+	params := url.Values{"payment_plan_id": []string{strconv.Itoa(int(paymentPlanID))}}
+	resp, requestErr := j.makeRequest(getPayments, "GET", nil, params)
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+
+	b, requestErr := ioutil.ReadAll(resp.Body)
+	if requestErr != nil {
+		clientErr := "Failed to GET payments"
+
+		err = httphelpers.NewAPIError(requestErr, clientErr).SetInternalErrorMessage("Failed to read response body from GET payments")
+		return 
+	}
+
+	if resp.StatusCode != 200 {
+		requestErr = errors.New("Failed to GET payments, non-200 response: " + string(b))
+		clientErr := "Failed to GET payments"
+
+		err = httphelpers.NewAPIError(requestErr, clientErr)
+		return payments, err
+	}
+
+	requestErr = json.Unmarshal(b, &payments)
+	if requestErr != nil {
+		clientErr := "Failed to GET payments"
+
+		err = httphelpers.NewAPIError(requestErr, clientErr).SetInternalErrorMessage("Failed to unmarshal GET payments result")
 		return nil, err
 	}
 

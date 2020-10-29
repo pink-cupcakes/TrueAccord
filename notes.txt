@@ -2,3 +2,6 @@
     - This causes the remaining_amount to potentially populate even though the customer completed the payment plan
     - Assuming payment_plans will not be higher than debts
     - Next payment due date will be null because there's no payment plan left
+
+2. There is no direct link between payments and debts.
+    - This goes back to point 1, but if there are partial amounts that aren't included on a payment plan - the debt has no way to be paid off.

@@ -36,6 +36,8 @@ func main() {
 				"ClientError": err.ClientErrorMessage,
 				"InternalErrorMessage": err.InternalErrorMessage,
 			}).Error()
+
+			// Depending on the severity, either recover or break
 		}
 
 		if(len(paymentPlans) > 1) {
@@ -48,6 +50,19 @@ func main() {
 		}
 
 		paymentPlan := paymentPlans[0]
+		payments, err := trueAccordAPIConnector.GetPayments(paymentPlan.ID)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"Message": err.ErrorMessage,
+				"ClientError": err.ClientErrorMessage,
+				"InternalErrorMessage": err.InternalErrorMessage,
+			}).Error()
+		}
+
+		log.Println("Payment plan is:")
 		log.Println(paymentPlan)
+		for _, payment := range payments {
+			log.Println(payment)
+		}
 	}
 }
