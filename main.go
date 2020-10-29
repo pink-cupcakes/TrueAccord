@@ -29,6 +29,25 @@ func main() {
 	}
 
 	for _, debt := range debts {
-		log.Println(debt)
+		paymentPlans, err := trueAccordAPIConnector.GetPaymentPlan(debt.ID)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"Message": err.ErrorMessage,
+				"ClientError": err.ClientErrorMessage,
+				"InternalErrorMessage": err.InternalErrorMessage,
+			}).Error()
+		}
+
+		if(len(paymentPlans) > 1) {
+			log.WithFields(log.Fields{
+				"Message": "More than 1 payment plan found per debt",
+			}).Info()
+		} else if (len(paymentPlans) == 0) {
+			// Handle no payment plans
+			continue
+		}
+
+		paymentPlan := paymentPlans[0]
+		log.Println(paymentPlan)
 	}
 }
