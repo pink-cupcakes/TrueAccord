@@ -1,0 +1,4 @@
+1. debts and payment_plan totals don't add up.
+    - This causes the remaining_amount to potentially populate even though the customer completed the payment plan
+    - Assuming payment_plans will not be higher than debts
+    - Next payment due date will be null because there's no payment plan left
