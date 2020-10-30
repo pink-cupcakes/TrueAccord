@@ -39,9 +39,8 @@ func findNextPayment(paymentPlan *trueaccordapiconnector.PaymentPlan) (nextPayme
 		return
 	}
 
-	paymentDate, err := time.Parse("2020-09-29T17:19:31Z", paymentPlan.StartDate)
+	paymentDate, err := time.Parse("2006-01-02", paymentPlan.StartDate)
 	if err != nil {
-		err = errors.New("Failed to parse payment start date")
 		return
 	}
 
@@ -57,7 +56,7 @@ func findNextPayment(paymentPlan *trueaccordapiconnector.PaymentPlan) (nextPayme
 
 	now := time.Now()
 	for(paymentDate.Before(now) && paymentPlan.AmountToPay > subtotalOwed) {
-		paymentDate.Add(paymentInterval)
+		paymentDate = paymentDate.Add(paymentInterval)
 		subtotalOwed += paymentPlan.InstallmentAmount
 	}
 
@@ -95,6 +94,13 @@ func main() {
 			log.Println("NO PAYMENT PLAN FOUND")
 			continue
 		}
+
+		paymentDate, total, paymentErr := findNextPayment(paymentPlan)
+		if(paymentErr != nil) {
+			log.Println(paymentErr)
+		}
+		println(paymentDate.Format(time.RFC3339))
+		println(total)
 
 		payments, err := trueAccordAPIConnector.GetPayments(paymentPlan.ID)
 		if err != nil {
