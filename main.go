@@ -1,9 +1,13 @@
 package main
 
 import (
+	"errors"
 	// "http"
 	// "fmt"
+	"math"
+	"time"
 
+	"true_accord/shared/httphelpers"
 	"true_accord/shared/trueaccordapiconnector"
 
 	log "github.com/sirupsen/logrus"
@@ -11,9 +15,64 @@ import (
 
 var trueAccordAPIConnector trueaccordapiconnector.TrueAccordAPIConnector
 
+const (
+	weeklyInterval = time.Hour * 24 * 7
+	biweeklyInterval = time.Hour * 24 * 7 * 2
+)
+
+type EnrichedDebt struct {
+	trueaccordapiconnector.Debt
+
+	HasPaymentPlan bool `json:"is_in_payment_plan"`
+	RemainingDebt float64 `json:"remaining_amount,omitempty"`
+	NextBillingDate string `json:"next_payment_due_date,omitempty"`
+}
+
 func initialize() {
 	log.SetFormatter(&log.TextFormatter{})
 	trueAccordAPIConnector = trueaccordapiconnector.NewTrueAccordAPIConnector()
+}
+
+func findNextPayment(paymentPlan *trueaccordapiconnector.PaymentPlan) (nextPaymentDate time.Time, subtotalOwed float64, err error) {
+	if(paymentPlan == nil) {
+		err = errors.New("No payment plan provided")
+		return
+	}
+
+	paymentDate, err := time.Parse("2020-09-29T17:19:31Z", paymentPlan.StartDate)
+	if err != nil {
+		err = errors.New("Failed to parse payment start date")
+		return
+	}
+
+	var paymentInterval time.Duration
+	if(paymentPlan.InstallmentFrequency == "WEEKLY") {
+		paymentInterval = weeklyInterval
+	} else if(paymentPlan.InstallmentFrequency == "BI_WEEKLY") {
+		paymentInterval = biweeklyInterval
+	} else {
+		err = errors.New("Unhandled payment interval")
+		return
+	}
+
+	now := time.Now()
+	for(paymentDate.Before(now) && paymentPlan.AmountToPay > subtotalOwed) {
+		paymentDate.Add(paymentInterval)
+		subtotalOwed += paymentPlan.InstallmentAmount
+	}
+
+	return paymentDate, math.Min(subtotalOwed, paymentPlan.AmountToPay), nil
+}
+
+func debtDataEnrichment(debt trueaccordapiconnector.Debt, paymentPlan *trueaccordapiconnector.PaymentPlan, payments []*trueaccordapiconnector.Payment) (res EnrichedDebt, err *httphelpers.APIError) {
+	res.Debt = debt
+
+	if(paymentPlan == nil) {
+		return
+	}
+
+	res.HasPaymentPlan = true
+	return
 }
 
 func main() {
@@ -25,28 +84,18 @@ func main() {
 	}
 
 	for _, debt := range debts {
-		paymentPlans, err := trueAccordAPIConnector.GetPaymentPlan(debt.ID)
+		paymentPlan, err := trueAccordAPIConnector.GetPaymentPlan(debt.ID)
 		if err != nil {
 			err.LogError()
 
 			// TODO: Depending on the severity, either recover or break
 		}
 
-		if(len(paymentPlans) > 1) {
-			/** Warning: the TrueAccord API should enforce business logic 1:1 debt to paymentPlan.
-				This just adds monitoring if we come across failures in the business logic.
-
-				This logic is not blocking and will default to the first payment plan.
-			*/
-			log.WithFields(log.Fields{
-				"Message": fmt.Sprintf("More than 1 payment plan found for debtID %d", debt.ID),
-			}).Info()
-		} else if (len(paymentPlans) == 0) {
-			// TODO: Handle no payment plans
+		if(paymentPlan == nil) {
+			log.Println("NO PAYMENT PLAN FOUND")
 			continue
 		}
 
-		paymentPlan := paymentPlans[0]
 		payments, err := trueAccordAPIConnector.GetPayments(paymentPlan.ID)
 		if err != nil {
 			err.LogError()
