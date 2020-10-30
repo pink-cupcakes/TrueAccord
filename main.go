@@ -29,15 +29,20 @@ func main() {
 		if err != nil {
 			err.LogError()
 
-			// Depending on the severity, either recover or break
+			// TODO: Depending on the severity, either recover or break
 		}
 
 		if(len(paymentPlans) > 1) {
+			/** Warning: the TrueAccord API should enforce business logic 1:1 debt to paymentPlan.
+				This just adds monitoring if we come across failures in the business logic.
+
+				This logic is not blocking and will default to the first payment plan.
+			*/
 			log.WithFields(log.Fields{
-				"Message": "More than 1 payment plan found per debt",
+				"Message": fmt.Sprintf("More than 1 payment plan found for debtID %d", debt.ID),
 			}).Info()
 		} else if (len(paymentPlans) == 0) {
-			// Handle no payment plans
+			// TODO: Handle no payment plans
 			continue
 		}
 
