@@ -15,4 +15,4 @@ Requires go 1.13
 cd TrueAccord
 go run true_accord
 ```
-Note: the binary, the executable can be run directly. If it fails - check if the environment variables were set.
+Note: the executible binary is included and can be run directly. If it fails - check if the environment variables were set.
