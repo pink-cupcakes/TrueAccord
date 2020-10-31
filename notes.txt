@@ -8,4 +8,6 @@
 
 3. /payment_plans and /payments endpoint responses don't line up with API specs (non-ISO)
 
-4. Self note: I am skipping null cases for GetPaymentPlan, GetPayments because int64 is not nullable
+4. Self note: Skipping null cases for GetPaymentPlan, GetPayments because int64 is not nullable
+
+5. Created an error case for when PaymentPlan installment_amount is 0. I assumed this should be a non-zero field, but alternatively it can just continue to create dates into the future.

@@ -18,93 +18,118 @@ func Bod(t time.Time) time.Time {
 	return time.Date(year, month, day, 0, 0, 0, 0, t.UTC().Location())
 }
 
-func TestFindNextPaymentDateSuccess(t *testing.T) {
+func TestAggregateNextPaymentInfoSuccess(t *testing.T) {
 	testPaymentPlan := trueaccordapiconnector.PaymentPlan{0, 0, 102.5, "WEEKLY", 51.25, "2020-09-28"}
 	testSuccessNextPaymentDate, err := time.Parse("2006-01-02", "2020-10-05")
 	if err != nil {
 		t.Errorf(err.Error())
 	}
 
-	nextPaymentDate, subTotalOwed, err := findNextPaymentDate(&testPaymentPlan)
+	nextPaymentDate, subTotalOwed, err := aggregateNextPaymentInfo(&testPaymentPlan, 0.00)
 
 	assert.Nil(t, err)
 	assert.Equal(t, nextPaymentDate, testSuccessNextPaymentDate)
 	assert.Equal(t, 102.5, subTotalOwed)
 }
 
-func TestFindNextPaymentDateSuccessNoAmountOwedBalance(t *testing.T) {
+func TestAggregateNextPaymentInfoSuccessNoAmountOwedBalance(t *testing.T) {
 	testPaymentPlan := trueaccordapiconnector.PaymentPlan{0, 0, 0, "WEEKLY", 51.25, "2020-09-28"}
-	testSuccessNextPaymentDate, err := time.Parse("2006-01-02", "2020-09-28")
-	if err != nil {
-		t.Errorf(err.Error())
-	}
+	testSuccessNextPaymentDate := time.Time{}
 
-	nextPaymentDate, subTotalOwed, err := findNextPaymentDate(&testPaymentPlan)
+	nextPaymentDate, subTotalOwed, err := aggregateNextPaymentInfo(&testPaymentPlan, 0.00)
 
 	assert.Nil(t, err)
 	assert.Equal(t, nextPaymentDate, testSuccessNextPaymentDate)
 	assert.Equal(t, float64(0), subTotalOwed)
 }
 
-func TestFindNextPaymentDateFailureInvalidInstallAmount(t *testing.T) {
-	testPaymentPlan := trueaccordapiconnector.PaymentPlan{0, 0, 102.5, "WEEKLY", 0, "2020-09-28"}
-
-	_, _, err := findNextPaymentDate(&testPaymentPlan)
-
-	assert.NotNil(t, err)
-	assert.Equal(t, errors.New("No installment_amount found"), err)
-
-	testPaymentPlan = trueaccordapiconnector.PaymentPlan{0, 0, 102.5, "WEEKLY", -2, "2020-09-28"}
-
-	_, _, err = findNextPaymentDate(&testPaymentPlan)
-
-	assert.NotNil(t, err)
-	assert.Equal(t, errors.New("No installment_amount found"), err)
-}
-
-func TestFindNextPaymentDateSuccessFutureStartDate(t *testing.T) {
-	testPaymentPlan := trueaccordapiconnector.PaymentPlan{0, 0, 102.5, "WEEKLY", 51.25, "2021-09-28"}
-	testSuccessNextPaymentDate, err := time.Parse("2006-01-02", "2021-09-28")
+func TestAggregateNextPaymentInfoSuccessPartialPayments(t *testing.T) {
+	testPaymentPlan := trueaccordapiconnector.PaymentPlan{0, 0, 102.5, "WEEKLY", 51.25, "2020-09-28"}
+	testSuccessNextPaymentDate, err := time.Parse("2006-01-02", "2020-10-05")
 	if err != nil {
 		t.Errorf(err.Error())
 	}
 
-	nextPaymentDate, subTotalOwed, err := findNextPaymentDate(&testPaymentPlan)
-
-	assert.Nil(t, err)
-	assert.Equal(t, nextPaymentDate, testSuccessNextPaymentDate)
-	assert.Equal(t, 51.25, subTotalOwed)
-}
-
-func TestFindNextPaymentDateSuccessBiweekly(t *testing.T) {
-	testPaymentPlan := trueaccordapiconnector.PaymentPlan{0, 0, 102.5, "BI_WEEKLY", 51.25, "2020-09-28"}
-	testSuccessNextPaymentDate, err := time.Parse("2006-01-02", "2020-10-12")
-	if err != nil {
-		t.Errorf(err.Error())
-	}
-
-	nextPaymentDate, subTotalOwed, err := findNextPaymentDate(&testPaymentPlan)
+	nextPaymentDate, subTotalOwed, err := aggregateNextPaymentInfo(&testPaymentPlan, 51.25)
 
 	assert.Nil(t, err)
 	assert.Equal(t, nextPaymentDate, testSuccessNextPaymentDate)
 	assert.Equal(t, 102.5, subTotalOwed)
 }
 
-func TestFindNextPaymentDateSuccessPartialInstallments(t *testing.T) {
+func TestAggregateNextPaymentInfoSuccessFullyPaidToDate(t *testing.T) {
+	now := time.Now()
+	nowString := now.Format("2006-01-02")
+	testSuccessNextPaymentDate := Bod(now.AddDate(0, 0, 7))
+
+	testPaymentPlan := trueaccordapiconnector.PaymentPlan{0, 0, 102.5, "WEEKLY", 51.25, nowString}
+
+	nextPaymentDate, subTotalOwed, err := aggregateNextPaymentInfo(&testPaymentPlan, 51.25)
+
+	assert.Nil(t, err)
+	assert.Equal(t, nextPaymentDate, testSuccessNextPaymentDate)
+	assert.Equal(t, 102.5, subTotalOwed)
+}
+
+func TestAggregateNextPaymentInfoFailureInvalidInstallAmount(t *testing.T) {
+	testPaymentPlan := trueaccordapiconnector.PaymentPlan{0, 0, 102.5, "WEEKLY", 0, "2020-09-28"}
+
+	_, _, err := aggregateNextPaymentInfo(&testPaymentPlan, 0.00)
+
+	assert.NotNil(t, err)
+	assert.Equal(t, errors.New("No installment_amount found"), err)
+
+	testPaymentPlan = trueaccordapiconnector.PaymentPlan{0, 0, 102.5, "WEEKLY", -2, "2020-09-28"}
+
+	_, _, err = aggregateNextPaymentInfo(&testPaymentPlan, 0.00)
+
+	assert.NotNil(t, err)
+	assert.Equal(t, errors.New("No installment_amount found"), err)
+}
+
+func TestAggregateNextPaymentInfoSuccessFutureStartDate(t *testing.T) {
+	testPaymentPlan := trueaccordapiconnector.PaymentPlan{0, 0, 102.5, "WEEKLY", 51.25, "2021-09-28"}
+	testSuccessNextPaymentDate, err := time.Parse("2006-01-02", "2021-09-28")
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+
+	nextPaymentDate, subTotalOwed, err := aggregateNextPaymentInfo(&testPaymentPlan, 0.00)
+
+	assert.Nil(t, err)
+	assert.Equal(t, nextPaymentDate, testSuccessNextPaymentDate)
+	assert.Equal(t, 51.25, subTotalOwed)
+}
+
+func TestAggregateNextPaymentInfoSuccessBiweekly(t *testing.T) {
+	testPaymentPlan := trueaccordapiconnector.PaymentPlan{0, 0, 102.5, "BI_WEEKLY", 51.25, "2020-09-28"}
+	testSuccessNextPaymentDate, err := time.Parse("2006-01-02", "2020-10-12")
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+
+	nextPaymentDate, subTotalOwed, err := aggregateNextPaymentInfo(&testPaymentPlan, 0.00)
+
+	assert.Nil(t, err)
+	assert.Equal(t, nextPaymentDate, testSuccessNextPaymentDate)
+	assert.Equal(t, 102.5, subTotalOwed)
+}
+
+func TestAggregateNextPaymentInfoSuccessPartialInstallments(t *testing.T) {
 	testPaymentPlan := trueaccordapiconnector.PaymentPlan{0, 0, 110.00, "WEEKLY", 25.00, "2020-09-28"}
 	testSuccessNextPaymentDate, err := time.Parse("2006-01-02", "2020-10-26")
 	if err != nil {
 		t.Errorf(err.Error())
 	}
 
-	nextPaymentDate, subTotalOwed, err := findNextPaymentDate(&testPaymentPlan)
+	nextPaymentDate, subTotalOwed, err := aggregateNextPaymentInfo(&testPaymentPlan, 0.00)
 
 	assert.Nil(t, err)
 	assert.Equal(t, nextPaymentDate, testSuccessNextPaymentDate)
 	assert.Equal(t, 110.00, subTotalOwed)
 }
 
-func TestFindNextPaymentDateSuccessPaymentsInProgress(t *testing.T) {
+func TestAggregateNextPaymentInfoSuccessPaymentsInProgress(t *testing.T) {
 	now := time.Now()
 	startDate := Bod(now.AddDate(0, 0, -9))
 	stringStartDate := startDate.Format("2006-01-02")
@@ -117,21 +142,18 @@ func TestFindNextPaymentDateSuccessPaymentsInProgress(t *testing.T) {
 
 	testPaymentPlan := trueaccordapiconnector.PaymentPlan{0, 0, amountOwed, "WEEKLY", installmentAmount, stringStartDate}
 
-	nextPaymentDate, subTotalOwed, err := findNextPaymentDate(&testPaymentPlan)
+	nextPaymentDate, subTotalOwed, err := aggregateNextPaymentInfo(&testPaymentPlan, 0.00)
 
 	assert.Nil(t, err)
 	assert.Equal(t, successNextPaymentDate, nextPaymentDate)
 	assert.Equal(t, successSubtotalOwed, subTotalOwed)
 }
 
-func TestFindNextPaymentDateSuccessNegativeAmountOwed(t *testing.T) {
+func TestAggregateNextPaymentInfoSuccessNegativeAmountOwed(t *testing.T) {
 	testPaymentPlan := trueaccordapiconnector.PaymentPlan{0, 0, -102.5, "WEEKLY", 51.25, "2020-09-28"}
-	testSuccessNextPaymentDate, err := time.Parse("2006-01-02", "2020-09-28")
-	if err != nil {
-		t.Errorf(err.Error())
-	}
+	testSuccessNextPaymentDate := time.Time{}
 
-	nextPaymentDate, subTotalOwed, err := findNextPaymentDate(&testPaymentPlan)
+	nextPaymentDate, subTotalOwed, err := aggregateNextPaymentInfo(&testPaymentPlan, 0.00)
 
 	assert.Nil(t, err)
 	assert.Equal(t, nextPaymentDate, testSuccessNextPaymentDate)
@@ -143,7 +165,7 @@ func TestGetPaymentHistorySuccess(t *testing.T) {
 	testPayments := []trueaccordapiconnector.Payment{{testPaymentAmounts[0], "2020-09-29", 0}, {testPaymentAmounts[1], "2020-10-29", 0}}
 
 	testSumResult := testPaymentAmounts[0] + testPaymentAmounts[1]
-	totalPayments := getPaymentHistory(testPayments)
+	totalPayments := aggregatePayments(testPayments)
 	assert.Equal(t, testSumResult, totalPayments)
 }
 
@@ -160,7 +182,7 @@ func TestGetPaymentHistorySuccessFutureDates(t *testing.T) {
 	testPayments := []trueaccordapiconnector.Payment{{testPaymentAmounts[0], stringFirstDate, 0}, {testPaymentAmounts[1], stringSecondDate, 0}}
 
 	testSumResult := testPaymentAmounts[0]
-	totalPayments := getPaymentHistory(testPayments)
+	totalPayments := aggregatePayments(testPayments)
 	assert.Equal(t, testSumResult, totalPayments)
 }
 

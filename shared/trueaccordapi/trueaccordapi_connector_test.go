@@ -416,10 +416,14 @@ func TestGetPaymentsNon200Response(t *testing.T) {
 
 	paymentPlanID := int64(0)
 
+	expectedQuery := url.Values{
+		"payment_plan_id": []string{fmt.Sprintf("%d", paymentPlanID)},
+	}
+
 	// Exact URL match
-	httpmock.RegisterResponder("GET", fmt.Sprintf("%s/%s", trueAccordAPIURL, getPayments),
+	httpmock.RegisterResponderWithQuery("GET", fmt.Sprintf("%s/%s", trueAccordAPIURL, getPayments), expectedQuery,
 		httpmock.NewStringResponder(503, ""))
 
-	_, err := trueAccordTestAPIConnector.GetPaymentPlan(paymentPlanID)
-	assert.NotNil(t, err, "GetPaymentPlans should return error with non-200 response")
+	_, err := trueAccordTestAPIConnector.GetPayments(paymentPlanID)
+	assert.NotNil(t, err, "GetPayments should return error with non-200 response")
 }
