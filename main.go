@@ -36,6 +36,7 @@ func initialize() {
 	trueAccordAPIConnector = trueaccordapiconnector.NewTrueAccordAPIConnector()
 }
 
+// aggregateNextPaymentInfo ... returns the next payment date and amount owed according to payment plan (not debt)
 func aggregateNextPaymentInfo(paymentPlan *trueaccordapiconnector.PaymentPlan, totalPaid float64) (nextPaymentDate time.Time, subtotalOwed float64, err error) {
 	if paymentPlan == nil {
 		err = errors.New("No payment plan provided")
@@ -82,6 +83,7 @@ func aggregateNextPaymentInfo(paymentPlan *trueaccordapiconnector.PaymentPlan, t
 	return paymentDate, math.Min(subtotalOwed, paymentPlan.AmountToPay), nil
 }
 
+// aggregatePayments ... returns the total amount paid
 func aggregatePayments(payments []trueaccordapiconnector.Payment) (totalPayments float64) {
 	if len(payments) == 0 {
 		return
@@ -103,6 +105,7 @@ func aggregatePayments(payments []trueaccordapiconnector.Payment) (totalPayments
 	return
 }
 
+// debtDataEnrichment ... returns the debt object with paymentPlan and next payment information
 func debtDataEnrichment(debt trueaccordapiconnector.Debt, nextPaymentDate time.Time, subtotalOwed, totalPayments float64) (res EnrichedDebt) {
 	if nextPaymentDate.IsZero() {
 		return
