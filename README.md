@@ -2,7 +2,6 @@
 Script that connects with an API that provides debt, payment_plan, and payment information. It enriches the data to provide the debt_id, debt_amount, next_payment_date, amount_owed
 
 # Environment variables
-TRUEACCORD_API_URL: use the url for the API provided. For testing purposes, this repository contains test data reflected in db.json and is reachable from `http://my-json-server.typicode.com/pink-cupcakes/TrueAccord`
 ```TRUEACCORD_API_URL```
 
 ## Example environment variables:
