@@ -19,6 +19,89 @@
         {
             "amount": 9238.02,
             "id": 4
+        },
+        {
+            "amount": 10,
+            "id": 4
+        }
+    ],
+    "payment_plans": [
+        {
+            "amount_to_pay": 102.5,
+            "debt_id": 0,
+            "id": 0,
+            "installment_amount": 51.25,
+            "installment_frequency": "WEEKLY",
+            "start_date": "2020-10-30"
+        },
+        {
+            "amount_to_pay": 100,
+            "debt_id": 1,
+            "id": 1,
+            "installment_amount": 25,
+            "installment_frequency": "WEEKLY",
+            "start_date": "2020-08-01"
+        },
+        {
+            "amount_to_pay": 4920.34,
+            "debt_id": 2,
+            "id": 2,
+            "installment_amount": 1230.085,
+            "installment_frequency": "BI_WEEKLY",
+            "start_date": "2020-09-01"
+        },
+        {
+            "amount_to_pay": 4312.67,
+            "debt_id": 3,
+            "id": 3,
+            "installment_amount": 1230.085,
+            "installment_frequency": "WEEKLY",
+            "start_date": "2020-10-28"
+        },
+        {
+            "amount_to_pay": 4312.67,
+            "debt_id": 5,
+            "id": 4,
+            "installment_amount": 1230.085,
+            "installment_frequency": "WEEKLY",
+            "start_date": "2021-10-28"
+        }
+    ],
+    "payments": [
+        {
+            "amount": 51.25,
+            "date": "2020-09-29",
+            "payment_plan_id": 0
+        },
+        {
+            "amount": 25,
+            "date": "2020-08-08",
+            "payment_plan_id": 1
+        },
+        {
+            "amount": 25,
+            "date": "2020-08-08",
+            "payment_plan_id": 1
+        },
+        {
+            "amount": 1.0085,
+            "date": "2020-08-08",
+            "payment_plan_id": 2
+        },
+        {
+            "amount": 1.0115,
+            "date": "2020-01-02",
+            "payment_plan_id": 2
+        },
+        {
+            "amount": 1337.255,
+            "date": "2020-01-15",
+            "payment_plan_id": 3
+        },
+        {
+            "amount": 1230.085,
+            "date": "2020-02-14",
+            "payment_plan_id": 4
         }
     ]
-  }
+}
