@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"true_accord/shared/httphelpers"
-	"true_accord/shared/trueaccordapiconnector"
+	trueaccordapiconnector "true_accord/shared/trueaccordapi"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -19,15 +19,15 @@ import (
 var trueAccordAPIConnector trueaccordapiconnector.TrueAccordAPIConnector
 
 const (
-	weeklyInterval = time.Hour * 24 * 7
+	weeklyInterval   = time.Hour * 24 * 7
 	biweeklyInterval = time.Hour * 24 * 7 * 2
 )
 
 type EnrichedDebt struct {
 	trueaccordapiconnector.Debt
 
-	HasPaymentPlan bool `json:"is_in_payment_plan"`
-	RemainingDebt string `json:"remaining_amount,omitempty"`
+	HasPaymentPlan  bool   `json:"is_in_payment_plan"`
+	RemainingDebt   string `json:"remaining_amount,omitempty"`
 	NextBillingDate string `json:"next_payment_due_date,omitempty"`
 }
 
@@ -37,7 +37,7 @@ func initialize() {
 }
 
 func findNextPaymentDate(paymentPlan *trueaccordapiconnector.PaymentPlan) (nextPaymentDate time.Time, subtotalOwed float64, err error) {
-	if(paymentPlan == nil) {
+	if paymentPlan == nil {
 		err = errors.New("No payment plan provided")
 		return
 	}
@@ -47,10 +47,21 @@ func findNextPaymentDate(paymentPlan *trueaccordapiconnector.PaymentPlan) (nextP
 		return
 	}
 
+	if paymentPlan.AmountToPay <= float64(0) {
+		return paymentDate, subtotalOwed, err
+	}
+
+	if paymentPlan.InstallmentAmount <= float64(0) && paymentPlan.AmountToPay != float64(0) {
+		err = errors.New("No installment_amount found")
+		return
+	}
+
+	subtotalOwed = paymentPlan.InstallmentAmount
+
 	var paymentInterval time.Duration
-	if(paymentPlan.InstallmentFrequency == "WEEKLY") {
+	if paymentPlan.InstallmentFrequency == "WEEKLY" {
 		paymentInterval = weeklyInterval
-	} else if(paymentPlan.InstallmentFrequency == "BI_WEEKLY") {
+	} else if paymentPlan.InstallmentFrequency == "BI_WEEKLY" {
 		paymentInterval = biweeklyInterval
 	} else {
 		err = errors.New("Unhandled payment interval")
@@ -58,7 +69,7 @@ func findNextPaymentDate(paymentPlan *trueaccordapiconnector.PaymentPlan) (nextP
 	}
 
 	now := time.Now()
-	for(paymentDate.Before(now) && paymentPlan.AmountToPay > subtotalOwed) {
+	for paymentDate.Before(now) && paymentPlan.AmountToPay > subtotalOwed {
 		paymentDate = paymentDate.Add(paymentInterval)
 		subtotalOwed += paymentPlan.InstallmentAmount
 	}
@@ -67,12 +78,21 @@ func findNextPaymentDate(paymentPlan *trueaccordapiconnector.PaymentPlan) (nextP
 }
 
 func getPaymentHistory(payments []trueaccordapiconnector.Payment) (totalPayments float64) {
-	if(len(payments) == 0) {
+	if len(payments) == 0 {
 		return
 	}
 
+	now := time.Now()
+
 	for _, payment := range payments {
-		totalPayments += payment.Amount
+		paymentDate, err := time.Parse("2006-01-02", payment.Date)
+		if err != nil {
+			return
+		}
+
+		if paymentDate.Before(now) {
+			totalPayments += payment.Amount
+		}
 	}
 
 	return
@@ -80,14 +100,14 @@ func getPaymentHistory(payments []trueaccordapiconnector.Payment) (totalPayments
 
 // debtDataEnrichment assumes there is a valid payment plan
 func debtDataEnrichment(debt trueaccordapiconnector.Debt, nextPaymentDate time.Time, subtotalOwed, totalPayments float64) (res EnrichedDebt) {
-	if(nextPaymentDate.IsZero()) {
+	if nextPaymentDate.IsZero() {
 		return
 	}
 
 	res = EnrichedDebt{
 		debt,
 		true,
-		fmt.Sprintf("%.2f", math.Max(subtotalOwed - totalPayments, 0)),
+		fmt.Sprintf("%.2f", math.Max(subtotalOwed-totalPayments, 0)),
 		nextPaymentDate.Format(time.RFC3339),
 	}
 
@@ -95,8 +115,8 @@ func debtDataEnrichment(debt trueaccordapiconnector.Debt, nextPaymentDate time.T
 }
 
 func logResult(res EnrichedDebt) error {
-	out, err  := json.Marshal(res)
-	if(err != nil) {
+	out, err := json.Marshal(res)
+	if err != nil {
 		return err
 	}
 
@@ -119,15 +139,15 @@ func main() {
 			continue
 		}
 
-		if(paymentPlan == nil) {
+		if paymentPlan == nil {
 			res := EnrichedDebt{debt, false, "", ""}
 
 			logError := logResult(res)
-			if(logError != nil) {
+			if logError != nil {
 				err = httphelpers.NewAPIError(logError, fmt.Sprintf("Failed to log result for debtID: %d", debt.ID))
 				err.LogError()
 			}
-			
+
 			continue
 		}
 
@@ -137,7 +157,7 @@ func main() {
 		}
 
 		nextPaymentDate, subtotalOwed, findPaymentErr := findNextPaymentDate(paymentPlan)
-		if(findPaymentErr != nil) {
+		if findPaymentErr != nil {
 			err = httphelpers.NewAPIError(findPaymentErr, fmt.Sprintf("Failed to process payment plan for debtID: %d", debt.ID))
 			err.LogError()
 		}
@@ -146,7 +166,7 @@ func main() {
 
 		res := debtDataEnrichment(debt, nextPaymentDate, subtotalOwed, totalPaid)
 		logError := logResult(res)
-		if(logError != nil) {
+		if logError != nil {
 			err = httphelpers.NewAPIError(logError, fmt.Sprintf("Failed to log result for debtID: %d", debt.ID))
 			err.LogError()
 		}

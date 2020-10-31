@@ -7,3 +7,5 @@
     - This goes back to point 1, but if there are partial amounts that aren't included on a payment plan - the debt has no way to be paid off.
 
 3. /payment_plans and /payments endpoint responses don't line up with API specs (non-ISO)
+
+4. Self note: I am skipping null cases for GetPaymentPlan, GetPayments because int64 is not nullable
