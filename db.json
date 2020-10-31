@@ -99,7 +99,7 @@
             "payment_plan_id": 3
         },
         {
-            "amount": 1230.085,
+            "amount": 1,
             "date": "2020-02-14",
             "payment_plan_id": 4
         }
