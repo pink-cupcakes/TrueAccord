@@ -173,6 +173,37 @@ func TestGetPaymentPlansSuccess(t *testing.T) {
 	assert.Equal(t, testPaymentPlans[0], res)
 }
 
+func TestGetPaymentPlansSuccessEmptyResponse(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	debtID := int64(0)
+
+	testPaymentPlansResponse := `[]`
+
+	var testPaymentPlans []*PaymentPlan
+
+	unmarshalTestResponseErr := json.Unmarshal([]byte(testPaymentPlansResponse), &testPaymentPlans)
+	if unmarshalTestResponseErr != nil {
+		t.Errorf("Failed to generate test response")
+		return
+	}
+
+	expectedQuery := url.Values{
+		"debt_id": []string{fmt.Sprintf("%d", debtID)},
+	}
+
+	// Exact URL match
+	httpmock.RegisterResponderWithQuery("GET", fmt.Sprintf("%s/%s", trueAccordAPIURL, getPaymentPlans), expectedQuery,
+		httpmock.NewStringResponder(200, testPaymentPlansResponse))
+
+	var emptyRes *PaymentPlan
+
+	res, err := trueAccordTestAPIConnector.GetPaymentPlan(debtID)
+	assert.Nil(t, err, "GetPaymentPlanSuccess empty response")
+	assert.Equal(t, emptyRes, res)
+}
+
 func TestGetPaymentPlansMoreThanOneToDebt(t *testing.T) {
 	var loggedError bytes.Buffer
 	log.SetOutput(&loggedError)
@@ -316,6 +347,35 @@ func TestGetPaymentsSuccess(t *testing.T) {
 
 	res, err := trueAccordTestAPIConnector.GetPayments(paymentPlanID)
 	assert.Nil(t, err, "GetPaymentsSuccess")
+	assert.Equal(t, testPayments, res)
+}
+
+func TestGetPaymentsSuccessEmptyResponse(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	paymentPlanID := int64(0)
+
+	testPaymentsResponse := `[]`
+
+	var testPayments []Payment
+
+	unmarshalTestResponseErr := json.Unmarshal([]byte(testPaymentsResponse), &testPayments)
+	if unmarshalTestResponseErr != nil {
+		t.Errorf("Failed to generate test response")
+		return
+	}
+
+	expectedQuery := url.Values{
+		"payment_plan_id": []string{fmt.Sprintf("%d", paymentPlanID)},
+	}
+
+	// Exact URL match
+	httpmock.RegisterResponderWithQuery("GET", fmt.Sprintf("%s/%s", trueAccordAPIURL, getPayments), expectedQuery,
+		httpmock.NewStringResponder(200, testPaymentsResponse))
+
+	res, err := trueAccordTestAPIConnector.GetPayments(paymentPlanID)
+	assert.Nil(t, err, "GetPaymentsSuccess empty response")
 	assert.Equal(t, testPayments, res)
 }
 
