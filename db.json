@@ -68,7 +68,7 @@
             "id": 4,
             "installment_amount": 10,
             "installment_frequency": "WEEKLY",
-            "start_date": "2021-10-10"
+            "start_date": "2020-10-10"
         },
         {
             "amount_to_pay": 5456.67,
@@ -76,7 +76,15 @@
             "id": 5,
             "installment_amount": 10,
             "installment_frequency": "WEEKLY",
-            "start_date": "2021-10-10"
+            "start_date": "2020-10-10"
+        },
+        {
+            "amount_to_pay": 5456.67,
+            "debt_id": 6,
+            "id": 6,
+            "installment_amount": 1000,
+            "installment_frequency": "WEEKLY",
+            "start_date": "2018-10-10"
         }
     ],
     "payments": [
@@ -119,6 +127,11 @@
             "amount": 5455.00,
             "date": "2020-02-14",
             "payment_plan_id": 5
+        },
+        {
+            "amount": 4456.67,
+            "date": "2019-09-12",
+            "payment_plan_id": 6
         }
     ]
 }

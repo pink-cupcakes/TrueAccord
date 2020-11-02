@@ -37,7 +37,7 @@ func initialize() {
 }
 
 // aggregateNextPaymentInfo ... returns the next payment date and amount owed according to payment plan (not debt)
-func aggregateNextPaymentInfo(paymentPlan *trueaccordapiconnector.PaymentPlan, totalPaid float64) (nextPaymentDate time.Time, amountOwed float64, err error) {
+func aggregateNextPaymentInfo(paymentPlan *trueaccordapiconnector.PaymentPlan, totalPaid float64) (nextPaymentDate time.Time, err error) {
 	if paymentPlan == nil {
 		err = errors.New("No payment plan provided")
 		return
@@ -72,26 +72,13 @@ func aggregateNextPaymentInfo(paymentPlan *trueaccordapiconnector.PaymentPlan, t
 
 	// Retrieve next payment date and amount owed by payment date (independent of actual payments)
 	now := time.Now()
-	if totalPaid > paymentPlan.AmountToPay {
-		return time.Time{}, paymentPlan.AmountToPay, nil
-	}
 
 	for paymentDate.Before(now) && paymentPlan.AmountToPay > subtotalOwed {
 		paymentDate = paymentDate.Add(paymentInterval)
 		subtotalOwed += paymentPlan.InstallmentAmount
 	}
 
-	if subtotalOwed == paymentPlan.AmountToPay && subtotalOwed < paymentPlan.InstallmentAmount {
-		return paymentDate, paymentPlan.AmountToPay, nil
-	}
-
-	// This takes into account any excess payments, and continues to iterate forward for payment date and amount
-	for totalPaid > subtotalOwed && paymentPlan.AmountToPay > subtotalOwed {
-		paymentDate = paymentDate.Add(paymentInterval)
-		subtotalOwed += paymentPlan.InstallmentAmount
-	}
-
-	return paymentDate, paymentPlan.AmountToPay, nil
+	return paymentDate, nil
 }
 
 // aggregatePayments ... returns the total amount paid
@@ -117,12 +104,12 @@ func aggregatePayments(payments []trueaccordapiconnector.Payment) (totalPayments
 }
 
 // debtDataEnrichment ... returns the debt object with paymentPlan and next payment information
-func debtDataEnrichment(debt trueaccordapiconnector.Debt, nextPaymentDate time.Time, totalOwed, totalPayments float64) (res EnrichedDebt) {
+func debtDataEnrichment(debt trueaccordapiconnector.Debt, nextPaymentDate time.Time, paymentPlan *trueaccordapiconnector.PaymentPlan, totalPayments float64) (res EnrichedDebt) {
 	if nextPaymentDate.IsZero() {
 		return
 	}
 
-	remainingAmount := math.Max(totalOwed-totalPayments, 0)
+	remainingAmount := math.Max(paymentPlan.AmountToPay-totalPayments, 0)
 	if remainingAmount == 0 {
 		res = EnrichedDebt{
 			debt,
@@ -187,13 +174,13 @@ func main() {
 
 		totalPaid := aggregatePayments(payments)
 
-		nextPaymentDate, totalOwed, findPaymentErr := aggregateNextPaymentInfo(paymentPlan, totalPaid)
+		nextPaymentDate, findPaymentErr := aggregateNextPaymentInfo(paymentPlan, totalPaid)
 		if findPaymentErr != nil {
 			err = httphelpers.NewAPIError(findPaymentErr, fmt.Sprintf("Failed to process payment plan for debtID: %d", debt.ID))
 			err.LogError()
 		}
 
-		res := debtDataEnrichment(debt, nextPaymentDate, totalOwed, totalPaid)
+		res := debtDataEnrichment(debt, nextPaymentDate, paymentPlan, totalPaid)
 		logError := logResult(res)
 		if logError != nil {
 			err = httphelpers.NewAPIError(logError, fmt.Sprintf("Failed to log result for debtID: %d", debt.ID))
