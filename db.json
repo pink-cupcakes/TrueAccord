@@ -64,7 +64,7 @@
         },
         {
             "amount_to_pay": 4312.67,
-            "debt_id": 5,
+            "debt_id": 4,
             "id": 4,
             "installment_amount": 10,
             "installment_frequency": "WEEKLY",
