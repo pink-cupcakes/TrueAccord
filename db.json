@@ -73,7 +73,7 @@
         {
             "amount_to_pay": 5456.67,
             "debt_id": 5,
-            "id": 4,
+            "id": 5,
             "installment_amount": 10,
             "installment_frequency": "WEEKLY",
             "start_date": "2021-10-10"
@@ -114,6 +114,11 @@
             "amount": 6000,
             "date": "2020-02-14",
             "payment_plan_id": 4
+        },
+        {
+            "amount": 5455.00,
+            "date": "2020-02-14",
+            "payment_plan_id": 5
         }
     ]
 }
